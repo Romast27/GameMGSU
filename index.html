@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Строитель мечты</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+        <div id="uiContainer">
+            <div id="pointsPanel" class="ui-panel">
+                <div class="points-header">🏗️ Строитель мечты</div>
+                <div class="points-value">Очки: <span id="pointsValue">0</span></div>
+            </div>
+
+            <div id="selectedBuildingPanel" class="ui-panel" style="display: none;">
+                <div id="selectedBuildingInfo"></div>
+                <button id="rotateButton" class="action-button">🔄 Повернуть</button>
+                <button id="cancelButton" class="action-button">❌ Отмена</button>
+            </div>
+
+            <div id="hintPanel" class="ui-panel">
+                <span id="hintText">Выберите здание и разместите его на поле</span>
+            </div>
+
+            <div id="buildingsPanel" class="ui-panel">ui-panel
+                <div class="buildings-header">Доступные здания</div>
+                <div id="buildingsList" class="buildings-list">
+                    <!-- Здания будут добавляться динамически -->
+                </div>
+            </div>
+
+            <div id="bonusPanel" class="ui-panel bonus-indicator" style="display: none;">
+                <div id="bonusText"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="buildings.js"></script>
+    <script src="game.js"></script>
+</body>
+</html>

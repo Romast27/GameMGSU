@@ -1,0 +1,289 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    touch-action: manipulation;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    color: white;
+    overflow: hidden;
+    height: 100vh;
+}
+
+#gameContainer {
+    width: 100%;
+    height: 100vh;
+    position: relative;
+}
+
+#gameCanvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+}
+
+#uiContainer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2;
+    pointer-events: none;
+}
+
+.ui-panel {
+    position: absolute;
+    background: rgba(26, 32, 53, 0.95);
+    border: 2px solid #4a5568;
+    border-radius: 12px;
+    padding: 15px;
+    backdrop-filter: blur(10px);
+    pointer-events: auto;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+#pointsPanel {
+    top: 20px;
+    left: 20px;
+    min-width: 200px;
+}
+
+.points-header {
+    font-size: 16px;
+    font-weight: bold;
+    color: #63b3ed;
+    margin-bottom: 5px;
+}
+
+.points-value {
+    font-size: 20px;
+    font-weight: bold;
+    color: #fafafa;
+}
+
+#buildingsPanel {
+    bottom: 20px;
+    left: 20px;
+    right: 20px;
+    max-height: 180px;
+}
+
+.buildings-header {
+    font-size: 14px;
+    font-weight: bold;
+    color: #63b3ed;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+.buildings-list {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding: 5px;
+}
+
+.building-card {
+    min-width: 140px;
+    background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
+    border: 2px solid #4a5568;
+    border-radius: 10px;
+    padding: 12px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    flex-shrink: 0;
+}
+
+.building-card:hover {
+    transform: translateY(-2px);
+    border-color: #63b3ed;
+    box-shadow: 0 4px 12px rgba(99, 179, 237, 0.3);
+}
+
+.building-card.selected {
+    border-color: #f6e05e;
+    transform: scale(1.05);
+    box-shadow: 0 4px 16px rgba(246, 224, 94, 0.4);
+}
+
+.building-card:active {
+    transform: scale(0.95);
+}
+
+.building-name {
+    font-size: 14px;
+    font-weight: bold;
+    margin-bottom: 6px;
+}
+
+.building-stats {
+    font-size: 12px;
+    color: #cbd5e0;
+    line-height: 1.3;
+}
+
+.building-count {
+    font-size: 11px;
+    color: #f6e05e;
+    margin-top: 4px;
+    font-weight: bold;
+}
+
+#selectedBuildingPanel {
+    top: 100px;
+    left: 20px;
+    min-width: 220px;
+}
+
+#selectedBuildingInfo {
+    margin-bottom: 15px;
+}
+
+.building-info-name {
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 8px;
+}
+
+.building-info-stats {
+    font-size: 13px;
+    color: #cbd5e0;
+    line-height: 1.4;
+}
+
+.action-button {
+    width: 100%;
+    padding: 10px;
+    margin: 5px 0;
+    background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+    border: 1px solid #4a5568;
+    border-radius: 6px;
+    color: white;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+
+.action-button:hover {
+    background: linear-gradient(135deg, #63b3ed 0%, #4299e1 100%);
+    transform: translateY(-1px);
+}
+
+.action-button:active {
+    transform: translateY(0);
+}
+
+#hintPanel {
+    bottom: 210px;
+    left: 20px;
+    right: 20px;
+    text-align: center;
+    font-size: 14px;
+    color: #f6e05e;
+}
+
+.bonus-indicator {
+    top: 20px;
+    right: 20px;
+    background: linear-gradient(135deg, #f6e05e 0%, #d69e2e 100%);
+    color: #1a202c;
+    border-color: #d69e2e;
+}
+
+#bonusText {
+    font-weight: bold;
+    font-size: 14px;
+}
+
+/* Стили для скроллбара */
+.buildings-list::-webkit-scrollbar {
+    height: 6px;
+}
+
+.buildings-list::-webkit-scrollbar-track {
+    background: rgba(74, 85, 104, 0.3);
+    border-radius: 3px;
+}
+
+.buildings-list::-webkit-scrollbar-thumb {
+    background: #63b3ed;
+    border-radius: 3px;
+}
+
+.buildings-list::-webkit-scrollbar-thumb:hover {
+    background: #4299e1;
+}
+
+/* Адаптивность для мобильных */
+@media (max-width: 768px) {
+    #pointsPanel {
+        left: 10px;
+        right: 10px;
+        min-width: auto;
+    }
+
+    #buildingsPanel {
+        left: 10px;
+        right: 10px;
+        max-height: 160px;
+    }
+
+    .building-card {
+        min-width: 130px;
+        padding: 10px;
+    }
+
+    #selectedBuildingPanel {
+        left: 10px;
+        right: 10px;
+        min-width: auto;
+    }
+}
+
+/* Анимации */
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+.pulse {
+    animation: pulse 2s infinite;
+}
+
+
+
+
+#gameCanvas {
+    display: block;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+}
+
+/* Улучшение видимости сетки */
+.buildings-list {
+    scrollbar-width: thin;
+    scrollbar-color: #63b3ed rgba(74, 85, 104, 0.3);
+}
+
+/* Улучшение контрастности текста на карточках */
+.building-card {
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* Анимация появления зданий */
+@keyframes buildingAppear {
+    0% { transform: scale(0.8); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+.building-appear {
+    animation: buildingAppear 0.3s ease-out;
+}
