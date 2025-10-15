@@ -30,6 +30,10 @@ class Game {
         this.hexWidth = this.hexSize * 2;
         this.hexHeight = this.hexSize * Math.sqrt(3);
 
+        // Размеры прямоугольного поля
+        this.gridWidth = 15;  // количество шестиугольников по ширине
+        this.gridHeight = 12; // количество шестиугольников по высоте
+
         // Управление камерой
         this.isDragging = false;
         this.lastTouch = { x: 0, y: 0 };
@@ -169,6 +173,12 @@ class Game {
 
         console.log('Interaction at grid:', q, r);
 
+        // Проверка, находится ли координата в пределах поля
+        if (!this.isValidGridPosition(q, r)) {
+            console.log('Interaction outside grid bounds');
+            return;
+        }
+
         // Проверка клика по существующему зданию
         const coord = `${q},${r}`;
         if (this.grid.has(coord)) {
@@ -193,6 +203,11 @@ class Game {
         }
     }
 
+    // Проверка, находится ли координата в пределах прямоугольного поля
+    isValidGridPosition(q, r) {
+        return q >= 0 && q < this.gridWidth && r >= 0 && r < this.gridHeight;
+    }
+
     screenToGrid(x, y) {
         // Конвертация экранных координат в координаты сетки
         const screenX = (x - this.camera.x - this.canvas.width / 2) / this.zoom;
@@ -201,7 +216,8 @@ class Game {
         const q = (screenX * Math.sqrt(3) / 3 - screenY / 3) / this.hexSize;
         const r = (screenY * 2 / 3) / this.hexSize;
 
-        return this.cubeToAxial(this.roundCube(this.axialToCube(q, r)));
+        const cube = this.roundCube(this.axialToCube(q, r));
+        return this.cubeToAxial(cube);
     }
 
     axialToCube(q, r) {
@@ -236,8 +252,9 @@ class Game {
     }
 
     gridToScreen(q, r) {
-        const x = this.canvas.width / 2 + this.camera.x + this.zoom * this.hexSize * (Math.sqrt(3) * q + Math.sqrt(3) / 2 * r);
-        const y = this.canvas.height / 2 + this.camera.y + this.zoom * this.hexSize * (3 / 2 * r);
+        const hexSpacing = this.hexSize * 2;
+        const x = this.canvas.width / 2 + this.camera.x + this.zoom * hexSpacing * (Math.sqrt(3) * q + Math.sqrt(3) / 2 * r);
+        const y = this.canvas.height / 2 + this.camera.y + this.zoom * this.hexSize * 0.75 * (3 / 2 * r);
         return { x, y };
     }
 
@@ -250,11 +267,22 @@ class Game {
     }
 
     canPlaceBuilding(building, q, r) {
+        // Сначала проверяем, находится ли центральная клетка в пределах поля
+        if (!this.isValidGridPosition(q, r)) {
+            return false;
+        }
+
         const pattern = building.getRotatedPattern();
 
         for (const [dq, dr] of pattern) {
             const cellQ = q + dq;
             const cellR = r + dr;
+
+            // Проверяем, находится ли клетка в пределах поля
+            if (!this.isValidGridPosition(cellQ, cellR)) {
+                return false;
+            }
+
             const coord = `${cellQ},${cellR}`;
 
             if (this.grid.has(coord)) {
@@ -265,26 +293,26 @@ class Game {
     }
 
     placeBuilding(building, q, r) {
-	    // Для Парка НЕ размещаем здание в центральной клетке
-	    const cellsToPlace = building.type === 'PARK' ?
-	        building.cellPattern : // Только кольцо, без центра
-	        building.cellPattern; // Все клетки
+        // Для Парка НЕ размещаем здание в центральной клетке
+        const cellsToPlace = building.type === 'PARK' ?
+            building.cellPattern : // Только кольцо, без центра
+            building.cellPattern; // Все клетки
 
-	    building.cells = [];
+        building.cells = [];
 
-	    for (const [dq, dr] of cellsToPlace) {
-	        const cellQ = q + dq;
-	        const cellR = r + dr;
-	        const coord = `${cellQ},${cellR}`;
+        for (const [dq, dr] of cellsToPlace) {
+            const cellQ = q + dq;
+            const cellR = r + dr;
+            const coord = `${cellQ},${cellR}`;
 
-	        this.grid.set(coord, building);
-	        building.cells.push([cellQ, cellR]);
-	        console.log('Cell placed:', coord, 'for building:', building.type);
-	    }
+            this.grid.set(coord, building);
+            building.cells.push([cellQ, cellR]);
+            console.log('Cell placed:', coord, 'for building:', building.type);
+        }
 
-	    building.placed = true;
-	    building.placementTime = Date.now();
-	    this.buildings.push(building);
+        building.placed = true;
+        building.placementTime = Date.now();
+        this.buildings.push(building);
 
         // Удаление из доступных
         const index = this.availableBuildings.indexOf(building);
@@ -308,13 +336,13 @@ class Game {
     }
 
     getParkCenter(parkBuilding) {
-	    if (parkBuilding.type === 'PARK' && parkBuilding.cells.length > 0) {
-	        // Центр рассчитывается относительно первой клетки парка
-	        const [firstQ, firstR] = parkBuilding.cells[0];
-	        return [firstQ - parkBuilding.cellPattern[0][0], firstR - parkBuilding.cellPattern[0][1]];
-	    }
-	    return null;
-	}
+        if (parkBuilding.type === 'PARK' && parkBuilding.cells.length > 0) {
+            // Центр рассчитывается относительно первой клетки парка
+            const [firstQ, firstR] = parkBuilding.cells[0];
+            return [firstQ - parkBuilding.cellPattern[0][0], firstR - parkBuilding.cellPattern[0][1]];
+        }
+        return null;
+    }
 
     applyImmediateBonuses(building) {
         switch (building.type) {
@@ -332,58 +360,58 @@ class Game {
     }
 
     calculateBuildingIncome(building) {
-	    const currentTime = Date.now();
-	    const timeDiff = (currentTime - this.lastUpdateTime) / 60000;
-	    let baseIncome = building.basePoints * timeDiff;
+        const currentTime = Date.now();
+        const timeDiff = (currentTime - this.lastUpdateTime) / 60000;
+        let baseIncome = building.basePoints * timeDiff;
 
-	    let bonusMultiplier = 1.0;
-	    let bonusAdditive = 0;
+        let bonusMultiplier = 1.0;
+        let bonusAdditive = 0;
 
-	    // Проверка бонусов от соседних зданий
-	    for (const [cellQ, cellR] of building.cells) {
-	        const neighbors = this.getNeighbors(cellQ, cellR);
+        // Проверка бонусов от соседних зданий
+        for (const [cellQ, cellR] of building.cells) {
+            const neighbors = this.getNeighbors(cellQ, cellR);
 
-	        for (const [nq, nr] of neighbors) {
-	            const neighborCoord = `${nq},${nr}`;
-	            const neighbor = this.grid.get(neighborCoord);
+            for (const [nq, nr] of neighbors) {
+                const neighborCoord = `${nq},${nr}`;
+                const neighbor = this.grid.get(neighborCoord);
 
-	            if (neighbor) {
-	                // Бонус Парка
-	                if (neighbor.type === 'PARK') {
-	                    const parkCenter = this.getParkCenter(neighbor);
-	                    if (parkCenter) {
-	                        const [centerQ, centerR] = parkCenter;
-	                        // Проверяем, находится ли здание в центре парка
-	                        if (cellQ === centerQ && cellR === centerR) {
-	                            bonusMultiplier += 0.3; // +30% для центра
-	                        } else {
-	                            bonusAdditive += 10 * timeDiff; // +10 очков для соседей
-	                        }
-	                    }
-	                }
+                if (neighbor) {
+                    // Бонус Парка
+                    if (neighbor.type === 'PARK') {
+                        const parkCenter = this.getParkCenter(neighbor);
+                        if (parkCenter) {
+                            const [centerQ, centerR] = parkCenter;
+                            // Проверяем, находится ли здание в центре парка
+                            if (cellQ === centerQ && cellR === centerR) {
+                                bonusMultiplier += 0.3; // +30% для центра
+                            } else {
+                                bonusAdditive += 10 * timeDiff; // +10 очков для соседей
+                            }
+                        }
+                    }
 
-	                // Бонус Свечки
-	                if (neighbor.type === 'CANDLE') {
-	                    bonusMultiplier += 1.0; // +100%
-	                }
-	            }
-	        }
-	    }
+                    // Бонус Свечки
+                    if (neighbor.type === 'CANDLE') {
+                        bonusMultiplier += 1.0; // +100%
+                    }
+                }
+            }
+        }
 
-	    // Бонус Манежа (глобальный)
-	    if (this.manegeBonusActive && currentTime < this.manegeBonusEndTime) {
-	        bonusMultiplier += 0.5;
-	    }
+        // Бонус Манежа (глобальный)
+        if (this.manegeBonusActive && currentTime < this.manegeBonusEndTime) {
+            bonusMultiplier += 0.5;
+        }
 
-	    // Бонус Ромашки
-	    if (building.type === 'ROMASHKA') {
-	        const hoursPlaced = (currentTime - building.placementTime) / 3600000;
-	        building.romashkaBonus = Math.floor(hoursPlaced) * 5;
-	        bonusAdditive += building.romashkaBonus * timeDiff;
-	    }
+        // Бонус Ромашки
+        if (building.type === 'ROMASHKA') {
+            const hoursPlaced = (currentTime - building.placementTime) / 3600000;
+            building.romashkaBonus = Math.floor(hoursPlaced) * 5;
+            bonusAdditive += building.romashkaBonus * timeDiff;
+        }
 
-	    return baseIncome * bonusMultiplier + bonusAdditive;
-	}
+        return baseIncome * bonusMultiplier + bonusAdditive;
+    }
 
     calculateHourlyIncome() {
         let totalHourly = 0;
@@ -571,102 +599,101 @@ class Game {
     }
 
     drawHexagon(x, y, color, alpha = 1) {
-	    this.ctx.save();
-	    this.ctx.globalAlpha = alpha;
-	    this.ctx.fillStyle = color;
-	    this.ctx.strokeStyle = '#1e293b';
-	    this.ctx.lineWidth = 2;
+        this.ctx.save();
+        this.ctx.globalAlpha = alpha;
+        this.ctx.fillStyle = color;
+        this.ctx.strokeStyle = '#1e293b';
+        this.ctx.lineWidth = 2;
 
-	    this.ctx.beginPath();
-	    for (let i = 0; i < 6; i++) {
-	        const angle = Math.PI / 3 * i;
-	        const hexX = x + this.hexSize * this.zoom * Math.cos(angle);
-	        const hexY = y + this.hexSize * this.zoom * Math.sin(angle);
+        this.ctx.beginPath();
+        for (let i = 0; i < 6; i++) {
+            const angle = Math.PI / 3 * i;
+            const hexX = x + this.hexSize * this.zoom * Math.cos(angle);
+            const hexY = y + this.hexSize * this.zoom * Math.sin(angle);
 
-	        if (i === 0) {
-	            this.ctx.moveTo(hexX, hexY);
-	        } else {
-	            this.ctx.lineTo(hexX, hexY);
-	        }
-	    }
-	    this.ctx.closePath();
-	    this.ctx.fill();
-	    this.ctx.stroke();
-	    this.ctx.restore();
-	}
+            if (i === 0) {
+                this.ctx.moveTo(hexX, hexY);
+            } else {
+                this.ctx.lineTo(hexX, hexY);
+            }
+        }
+        this.ctx.closePath();
+        this.ctx.fill();
+        this.ctx.stroke();
+        this.ctx.restore();
+    }
 
     drawGrid() {
-	    const gridExtent = 13;
+        // Рисуем прямоугольную сетку
+        for (let q = 0; q < this.gridWidth; q++) {
+            for (let r = 0; r < this.gridHeight; r++) {
+                const { x, y } = this.gridToScreen(q, r);
 
-	    // Рисуем сетку
-	    for (let q = -gridExtent; q <= gridExtent; q++) {
-	        for (let r = -gridExtent; r <= gridExtent; r++) {
-	            const s = -q - r;
-	            if (Math.abs(s) > gridExtent) continue;
+                // Проверяем, видна ли клетка на экране
+                if (x > -100 && x < this.canvas.width + 100 &&
+                    y > -100 && y < this.canvas.height + 100) {
 
-	            const { x, y } = this.gridToScreen(q, r);
+                    const coord = `${q},${r}`;
+                    const building = this.grid.get(coord);
 
-	            // Проверяем, видна ли клетка на экране
-	            if (x > -100 && x < this.canvas.width + 100 &&
-	                y > -100 && y < this.canvas.height + 100) {
+                    if (building) {
+                        this.drawHexagon(x, y, building.color, 0.9);
+                    } else {
+                        this.drawHexagon(x, y, '#334155', 0.3);
+                    }
+                }
+            }
+        }
 
-	                const coord = `${q},${r}`;
-	                const building = this.grid.get(coord);
+        // Рисуем превью выбранного здания
+        if (this.selectedBuilding) {
+            const gridPos = this.screenToGrid(this.mousePos.x, this.mousePos.y);
+            const [q, r] = gridPos;
 
-	                if (building) {
-	                    this.drawHexagon(x, y, building.color, 0.9);
-	                    // УБИРАЕМ повторную обводку - она уже есть в drawHexagon
-	                } else {
-	                    this.drawHexagon(x, y, '#334155', 0.3);
-	                }
-	            }
-	        }
-	    }
+            // Проверяем, находится ли позиция в пределах поля
+            if (this.isValidGridPosition(q, r)) {
+                const canPlace = this.canPlaceBuilding(this.selectedBuilding, q, r);
+                const previewColor = canPlace ? this.selectedBuilding.color : '#ef4444';
+                const previewAlpha = canPlace ? 0.6 : 0.4;
 
-    // Рисуем превью выбранного здания
-    if (this.selectedBuilding) {
-        const gridPos = this.screenToGrid(this.mousePos.x, this.mousePos.y);
-        const [q, r] = gridPos;
-
-        const canPlace = this.canPlaceBuilding(this.selectedBuilding, q, r);
-        const previewColor = canPlace ? this.selectedBuilding.color : '#ef4444';
-        const previewAlpha = canPlace ? 0.6 : 0.4;
-
-        const pattern = this.selectedBuilding.getRotatedPattern();
-        for (const [dq, dr] of pattern) {
-            const previewPos = this.gridToScreen(q + dq, r + dr);
-            this.drawHexagon(previewPos.x, previewPos.y, previewColor, previewAlpha);
+                const pattern = this.selectedBuilding.getRotatedPattern();
+                for (const [dq, dr] of pattern) {
+                    const previewPos = this.gridToScreen(q + dq, r + dr);
+                    this.drawHexagon(previewPos.x, previewPos.y, previewColor, previewAlpha);
+                }
+            }
         }
     }
-}
 
     drawUI() {
-    // Рисуем бонусный индикатор
-	    if (this.manegeBonusActive) {
-	        const remainingTime = Math.max(0, this.manegeBonusEndTime - Date.now());
-	        const minutes = Math.floor(remainingTime / 60000);
-	        const seconds = Math.floor((remainingTime % 60000) / 1000);
+        // Рисуем бонусный индикатор
+        if (this.manegeBonusActive) {
+            const remainingTime = Math.max(0, this.manegeBonusEndTime - Date.now());
+            const minutes = Math.floor(remainingTime / 60000);
+            const seconds = Math.floor((remainingTime % 60000) / 1000);
 
-	        this.ctx.fillStyle = 'rgba(246, 224, 94, 0.9)';
-	        this.ctx.fillRect(this.canvas.width - 200, 120, 180, 40);
-	        this.ctx.fillStyle = '#1a202c';
-	        this.ctx.font = '14px Arial';
-	        this.ctx.fillText('Бонус Манежа +50%', this.canvas.width - 190, 140);
-	        this.ctx.fillText(`${minutes}:${seconds.toString().padStart(2, '0')}`, this.canvas.width - 190, 160);
-	    }
+            this.ctx.fillStyle = 'rgba(246, 224, 94, 0.9)';
+            this.ctx.fillRect(this.canvas.width - 200, 120, 180, 40);
+            this.ctx.fillStyle = '#1a202c';
+            this.ctx.font = '14px Arial';
+            this.ctx.fillText('Бонус Манежа +50%', this.canvas.width - 190, 140);
+            this.ctx.fillText(`${minutes}:${seconds.toString().padStart(2, '0')}`, this.canvas.width - 190, 160);
+        }
 
-	    // Отладочная информация
-	    this.ctx.fillStyle = 'white';
-	    this.ctx.font = '12px Arial';
-	    this.ctx.fillText(`Зданий на поле: ${this.buildings.length}`, 10, 30);
-	    this.ctx.fillText(`Доступно зданий: ${this.availableBuildings.length}`, 10, 45);
-	    this.ctx.fillText(`Занято клеток: ${this.grid.size}`, 10, 60);
+        // Отладочная информация
+        this.ctx.fillStyle = 'white';
+        this.ctx.font = '12px Arial';
+        this.ctx.fillText(`Зданий на поле: ${this.buildings.length}`, 10, 30);
+        this.ctx.fillText(`Доступно зданий: ${this.availableBuildings.length}`, 10, 45);
+        this.ctx.fillText(`Занято клеток: ${this.grid.size}`, 10, 60);
+        this.ctx.fillText(`Размер поля: ${this.gridWidth}x${this.gridHeight}`, 10, 75);
 
-	    // Показываем координаты мыши для отладки
-	    const gridPos = this.screenToGrid(this.mousePos.x, this.mousePos.y);
-	    this.ctx.fillText(`Мышь: ${Math.round(this.mousePos.x)},${Math.round(this.mousePos.y)}`, 10, 75);
-	    this.ctx.fillText(`Сетка: ${gridPos[0]},${gridPos[1]}`, 10, 90);
-	}
+        // Показываем координаты мыши для отладки
+        const gridPos = this.screenToGrid(this.mousePos.x, this.mousePos.y);
+        this.ctx.fillText(`Мышь: ${Math.round(this.mousePos.x)},${Math.round(this.mousePos.y)}`, 10, 90);
+        this.ctx.fillText(`Сетка: ${gridPos[0]},${gridPos[1]}`, 10, 105);
+        this.ctx.fillText(`В поле: ${this.isValidGridPosition(gridPos[0], gridPos[1]) ? 'Да' : 'Нет'}`, 10, 120);
+    }
 
     gameLoop() {
         // Очищаем canvas
