@@ -21,9 +21,6 @@
                 <button id="cancelButton" class="action-button">❌ Отмена</button>
             </div>
 
-            <div id="hintPanel" class="ui-panel">
-                <span id="hintText">Выберите здание и разместите его на поле</span>
-            </div>
 
             <div id="buildingsPanel" class="ui-panel">
                 <div class="buildings-header">Доступные здания</div>
@@ -40,6 +37,22 @@
 
     <script src="buildings.js"></script>
     <script src="game.js"></script>
-</body>
+    <script>
+        // Обработчики для кнопок
+        document.addEventListener('DOMContentLoaded', function() {
+            const cancelButton = document.getElementById('cancelButton');
 
+            cancelButton.addEventListener('click', function() {
+                if (window.game) {
+                    window.game.cancelPlacement();
+                }
+            });
+
+            // Сохраняем ссылку на игру в глобальной области видимости
+            window.addEventListener('load', function() {
+                window.game = new Game();
+            });
+        });
+    </script>
+</body>
 </html>

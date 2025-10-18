@@ -53,7 +53,7 @@ class Building {
                 maxPlacements: 5,
                 placementsLeft: 5,
                 cellPattern: [[0,0], [1,0], [2,0]],
-                description: "Очки за 1 час всех зданий<br>80 очков/минуту",
+                description: "Очки за 5 минут всех зданий<br>80 очков/минуту",
                 size: 3
             },
             CANDLE: {
@@ -80,11 +80,6 @@ class Building {
 
         const config = buildingConfigs[this.type];
         Object.assign(this, config);
-    }
-
-    getRotatedPattern() {
-        // Для простоты пока не реализуем сложный поворот
-        return this.cellPattern;
     }
 
     // Получить координаты центра для Парка (пустая клетка в середине)

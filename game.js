@@ -6,10 +6,8 @@ class Game {
         this.buildingsList = document.getElementById('buildingsList');
         this.selectedBuildingPanel = document.getElementById('selectedBuildingPanel');
         this.selectedBuildingInfo = document.getElementById('selectedBuildingInfo');
-        this.hintText = document.getElementById('hintText');
         this.bonusPanel = document.getElementById('bonusPanel');
         this.bonusText = document.getElementById('bonusText');
-        this.rotateButton = document.getElementById('rotateButton');
         this.cancelButton = document.getElementById('cancelButton');
 
         // Игровые данные
@@ -32,7 +30,7 @@ class Game {
 
         // Размеры прямоугольного поля
         this.gridWidth = 15;  // количество шестиугольников по ширине
-        this.gridHeight = 12; // количество шестиугольников по высоте
+        this.gridHeight = 13; // количество шестиугольников по высоте
 
         // Управление камерой
         this.isDragging = false;
@@ -88,14 +86,11 @@ class Game {
         });
 
         // Кнопки
-        this.rotateButton.addEventListener('click', () => this.rotateBuilding());
         this.cancelButton.addEventListener('click', () => this.cancelPlacement());
 
         // Клавиатура
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'r' && this.selectedBuilding) {
-                this.rotateBuilding();
-            } else if (e.key === 'Escape') {
+            if (e.key === 'Escape') {
                 this.cancelPlacement();
             }
         });
@@ -192,32 +187,8 @@ class Game {
             if (this.canPlaceBuilding(this.selectedBuilding, q, r)) {
                 this.placeBuilding(this.selectedBuilding, q, r);
                 this.hideBuildingInfo();
-            } else {
-                this.hintText.textContent = "Нельзя разместить здесь!";
-                setTimeout(() => {
-                    if (this.selectedBuilding) {
-                        this.hintText.textContent = `Выбрано: ${this.selectedBuilding.name}. Кликните на поле для размещения`;
-                    }
-                }, 2000);
             }
         }
-    }
-
-    // Проверка, находится ли координата в пределах прямоугольного поля
-    isValidGridPosition(q, r) {
-        return q >= 0 && q < this.gridWidth && r >= 0 && r < this.gridHeight;
-    }
-
-    screenToGrid(x, y) {
-        // Конвертация экранных координат в координаты сетки
-        const screenX = (x - this.camera.x - this.canvas.width / 2) / this.zoom;
-        const screenY = (y - this.camera.y - this.canvas.height / 2) / this.zoom;
-
-        const q = (screenX * Math.sqrt(3) / 3 - screenY / 3) / this.hexSize;
-        const r = (screenY * 2 / 3) / this.hexSize;
-
-        const cube = this.roundCube(this.axialToCube(q, r));
-        return this.cubeToAxial(cube);
     }
 
     axialToCube(q, r) {
@@ -252,18 +223,81 @@ class Game {
     }
 
     gridToScreen(q, r) {
-        const hexSpacing = this.hexSize * 2;
-        const x = this.canvas.width / 2 + this.camera.x + this.zoom * hexSpacing * (Math.sqrt(3) * q + Math.sqrt(3) / 2 * r);
-        const y = this.canvas.height / 2 + this.camera.y + this.zoom * this.hexSize * 0.75 * (3 / 2 * r);
-        return { x, y };
+	    // Смещение для нечетных строк (r) - сдвигаем вправо на половину шестиугольника
+	    const offsetX = (r % 2 === 1) ? this.hexSize * Math.sqrt(3) * 0.5 : 0;
+
+	    // Базовые координаты
+	    const baseX = offsetX + this.hexSize * Math.sqrt(3) * q;
+	    const baseY = this.hexHeight * 0.75 * r;
+
+	    // Центрируем сетку - используем gridWidth и gridHeight вместо gridCols и gridRows
+	    const gridCenterX = (this.gridWidth * this.hexSize * Math.sqrt(3)) / 2;
+	    const gridCenterY = (this.gridHeight * this.hexHeight * 0.75) / 2;
+
+	    const centeredX = baseX - gridCenterX;
+	    const centeredY = baseY - gridCenterY;
+
+	    // Финальные координаты с камерой
+	    const x = this.canvas.width / 2 + this.camera.x + centeredX * this.zoom;
+	    const y = this.canvas.height / 2 + this.camera.y + centeredY * this.zoom;
+
+	    return { x, y };
+	}
+
+    screenToGrid(x, y) {
+        const screenX = (x - this.camera.x - this.canvas.width / 2) / this.zoom;
+        const screenY = (y - this.camera.y - this.canvas.height / 2) / this.zoom;
+
+        // Приблизительные координаты
+        const approximateR = screenY / (this.hexHeight * 0.75);
+        const r = Math.round(approximateR - 0.5) + 7;
+
+        // Учитываем смещение для нечетных строк
+        let offsetX = 0;
+        if (r % 2 === 0) {
+            offsetX = 0.5;
+        }
+        const approximateQ = (screenX) / (this.hexSize * Math.sqrt(3));
+
+        const q = Math.round(approximateQ + offsetX) + 7;
+
+        return [q, r];
     }
 
+    isValidGridPosition(q, r) {
+	    if (r < 0 || r >= this.gridHeight) return false; // Исправлено на gridHeight
+
+	    // Для всех строк одинаковые границы по столбцам
+	    return q >= 0 && q < this.gridWidth; // Исправлено на gridWidth
+	}
+
     getNeighbors(q, r) {
-        return [
-            [q + 1, r], [q - 1, r],
-            [q, r + 1], [q, r - 1],
-            [q + 1, r - 1], [q - 1, r + 1]
-        ];
+        const neighbors = [];
+
+        if (r % 2 === 0) {
+            // Четные строки
+            neighbors.push(
+                [q, r - 1],     // верх
+                [q + 1, r - 1], // верх-право
+                [q + 1, r],     // право
+                [q, r + 1],     // низ
+                [q + 1, r + 1], // низ-право
+                [q - 1, r]      // лево
+            );
+        } else {
+            // Нечетные строки
+            neighbors.push(
+                [q - 1, r - 1], // верх-лево
+                [q, r - 1],     // верх
+                [q + 1, r],     // право
+                [q, r + 1],     // низ
+                [q - 1, r + 1], // низ-лево
+                [q - 1, r]      // лево
+            );
+        }
+
+        // Фильтруем невалидные позиции
+        return neighbors.filter(([nq, nr]) => this.isValidGridPosition(nq, nr));
     }
 
     canPlaceBuilding(building, q, r) {
@@ -272,9 +306,7 @@ class Game {
             return false;
         }
 
-        const pattern = building.getRotatedPattern();
-
-        for (const [dq, dr] of pattern) {
+        for (const [dq, dr] of building.cellPattern) {
             const cellQ = q + dq;
             const cellR = r + dr;
 
@@ -330,7 +362,6 @@ class Game {
         this.applyImmediateBonuses(building);
         this.createBuildingCards();
         this.selectedBuilding = null;
-        this.hintText.textContent = "Здание размещено! Выберите следующее здание.";
 
         console.log('Building placed:', building.type, 'at', q, r);
     }
@@ -347,10 +378,10 @@ class Game {
     applyImmediateBonuses(building) {
         switch (building.type) {
             case 'KMK':
-                const hourlyIncome = this.calculateHourlyIncome();
-                this.totalPoints += hourlyIncome;
-                console.log('KMK bonus:', hourlyIncome, 'points');
-                break;
+	            const fiveMinuteIncome = this.calculateFiveMinuteIncome();
+	            this.totalPoints += fiveMinuteIncome;
+	            console.log('KMK bonus:', fiveMinuteIncome, 'points');
+	            break;
             case 'MANEGE':
                 this.manegeBonusActive = true;
                 this.manegeBonusEndTime = Date.now() + 20 * 60 * 1000;
@@ -413,15 +444,15 @@ class Game {
         return baseIncome * bonusMultiplier + bonusAdditive;
     }
 
-    calculateHourlyIncome() {
-        let totalHourly = 0;
-        for (const building of this.buildings) {
-            if (building.placed) {
-                totalHourly += building.basePoints * 60;
-            }
-        }
-        return totalHourly;
-    }
+    calculateFiveMinuteIncome() {
+	    let totalFiveMinute = 0;
+	    for (const building of this.buildings) {
+	        if (building.placed) {
+	            totalFiveMinute += building.basePoints * 5; // 5 минут дохода всех зданий
+	        }
+	    }
+	    return totalFiveMinute;
+	}
 
     updatePoints() {
         const currentTime = Date.now();
@@ -468,7 +499,6 @@ class Game {
 
             this.lastBuildingSpawn = currentTime;
             this.createBuildingCards();
-            this.hintText.textContent = "Появились новые здания!";
         }
     }
 
@@ -522,7 +552,6 @@ class Game {
         this.selectedBuilding = building;
         this.createBuildingCards();
         this.selectedBuildingPanel.style.display = 'block';
-        this.hintText.textContent = `Выбрано: ${building.name}. Кликните на поле для размещения (R - повернуть, ESC - отмена)`;
 
         this.updateSelectedBuildingInfo();
         console.log('Building selected:', building.type);
@@ -543,19 +572,10 @@ class Game {
         `;
     }
 
-    rotateBuilding() {
-        if (this.selectedBuilding) {
-            this.selectedBuilding.rotation = (this.selectedBuilding.rotation + 60) % 360;
-            this.updateSelectedBuildingInfo();
-            console.log('Building rotated to:', this.selectedBuilding.rotation);
-        }
-    }
-
     cancelPlacement() {
         this.selectedBuilding = null;
         this.selectedBuildingPanel.style.display = 'none';
         this.createBuildingCards();
-        this.hintText.textContent = "Выберите здание и разместите его на поле";
         console.log('Placement cancelled');
     }
 
@@ -599,51 +619,61 @@ class Game {
     }
 
     drawHexagon(x, y, color, alpha = 1) {
-        this.ctx.save();
-        this.ctx.globalAlpha = alpha;
-        this.ctx.fillStyle = color;
-        this.ctx.strokeStyle = '#1e293b';
-        this.ctx.lineWidth = 2;
+	    this.ctx.save();
+	    this.ctx.globalAlpha = alpha;
+	    this.ctx.fillStyle = color;
+	    this.ctx.strokeStyle = '#1e293b';
+	    this.ctx.lineWidth = 2;
 
-        this.ctx.beginPath();
-        for (let i = 0; i < 6; i++) {
-            const angle = Math.PI / 3 * i;
-            const hexX = x + this.hexSize * this.zoom * Math.cos(angle);
-            const hexY = y + this.hexSize * this.zoom * Math.sin(angle);
+	    this.ctx.beginPath();
+	    for (let i = 0; i < 6; i++) {
+	        const angle = Math.PI / 3 * i + Math.PI / 2; // Добавляем поворот на 45 градусов (π/4)
+	        const hexX = x + this.hexSize * this.zoom * Math.cos(angle);
+	        const hexY = y + this.hexSize * this.zoom * Math.sin(angle);
 
-            if (i === 0) {
-                this.ctx.moveTo(hexX, hexY);
-            } else {
-                this.ctx.lineTo(hexX, hexY);
-            }
-        }
-        this.ctx.closePath();
-        this.ctx.fill();
-        this.ctx.stroke();
-        this.ctx.restore();
-    }
+	        if (i === 0) {
+	            this.ctx.moveTo(hexX, hexY);
+	        } else {
+	            this.ctx.lineTo(hexX, hexY);
+	        }
+	    }
+	    this.ctx.closePath();
+	    this.ctx.fill();
+	    this.ctx.stroke();
+	    this.ctx.restore();
+	}
 
     drawGrid() {
-        // Рисуем прямоугольную сетку
-        for (let q = 0; q < this.gridWidth; q++) {
-            for (let r = 0; r < this.gridHeight; r++) {
-                const { x, y } = this.gridToScreen(q, r);
+        // Рисуем градиентный фон
+	    const gradient = this.ctx.createLinearGradient(0, 0, 0, this.canvas.height);
+	    gradient.addColorStop(0, '#8bbde3');
+	    gradient.addColorStop(0.5, '#90caf9');
+	    gradient.addColorStop(1, '#b3d9ff');
 
-                // Проверяем, видна ли клетка на экране
-                if (x > -100 && x < this.canvas.width + 100 &&
-                    y > -100 && y < this.canvas.height + 100) {
+	    this.ctx.fillStyle = gradient;
+	    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
-                    const coord = `${q},${r}`;
-                    const building = this.grid.get(coord);
+	    // Рисуем сетку в шахматном порядке - используем gridHeight и gridWidth
+	    for (let r = 0; r < this.gridHeight; r++) { // Исправлено на gridHeight
+	        for (let q = 0; q < this.gridWidth; q++) { // Исправлено на gridWidth
+	            const screenPos = this.gridToScreen(q, r);
+	            const { x, y } = screenPos;
 
-                    if (building) {
-                        this.drawHexagon(x, y, building.color, 0.9);
-                    } else {
-                        this.drawHexagon(x, y, '#334155', 0.3);
-                    }
-                }
-            }
-        }
+	            // Проверяем, видна ли клетка на экране
+	            if (x > -100 && x < this.canvas.width + 100 &&
+	                y > -100 && y < this.canvas.height + 100) {
+
+	                const coord = `${q},${r}`;
+	                const building = this.grid.get(coord);
+
+	                if (building) {
+	                    this.drawHexagon(x, y, building.color, 0.9);
+	                } else {
+	                    this.drawHexagon(x, y, '#334155', 0.3);
+	                }
+	            }
+	        }
+	    }
 
         // Рисуем превью выбранного здания
         if (this.selectedBuilding) {
@@ -656,44 +686,48 @@ class Game {
                 const previewColor = canPlace ? this.selectedBuilding.color : '#ef4444';
                 const previewAlpha = canPlace ? 0.6 : 0.4;
 
-                const pattern = this.selectedBuilding.getRotatedPattern();
+                const pattern = this.selectedBuilding.cellPattern;
                 for (const [dq, dr] of pattern) {
-                    const previewPos = this.gridToScreen(q + dq, r + dr);
-                    this.drawHexagon(previewPos.x, previewPos.y, previewColor, previewAlpha);
+                    const cellQ = q + dq;
+                    const cellR = r + dr;
+
+                    if (this.isValidGridPosition(cellQ, cellR)) {
+                        const previewPos = this.gridToScreen(cellQ, cellR);
+                        this.drawHexagon(previewPos.x, previewPos.y, previewColor, previewAlpha);
+                    }
                 }
             }
         }
     }
 
-    drawUI() {
-        // Рисуем бонусный индикатор
-        if (this.manegeBonusActive) {
-            const remainingTime = Math.max(0, this.manegeBonusEndTime - Date.now());
-            const minutes = Math.floor(remainingTime / 60000);
-            const seconds = Math.floor((remainingTime % 60000) / 1000);
-
-            this.ctx.fillStyle = 'rgba(246, 224, 94, 0.9)';
-            this.ctx.fillRect(this.canvas.width - 200, 120, 180, 40);
-            this.ctx.fillStyle = '#1a202c';
-            this.ctx.font = '14px Arial';
-            this.ctx.fillText('Бонус Манежа +50%', this.canvas.width - 190, 140);
-            this.ctx.fillText(`${minutes}:${seconds.toString().padStart(2, '0')}`, this.canvas.width - 190, 160);
-        }
-
-        // Отладочная информация
-        this.ctx.fillStyle = 'white';
-        this.ctx.font = '12px Arial';
-        this.ctx.fillText(`Зданий на поле: ${this.buildings.length}`, 10, 30);
-        this.ctx.fillText(`Доступно зданий: ${this.availableBuildings.length}`, 10, 45);
-        this.ctx.fillText(`Занято клеток: ${this.grid.size}`, 10, 60);
-        this.ctx.fillText(`Размер поля: ${this.gridWidth}x${this.gridHeight}`, 10, 75);
-
-        // Показываем координаты мыши для отладки
-        const gridPos = this.screenToGrid(this.mousePos.x, this.mousePos.y);
-        this.ctx.fillText(`Мышь: ${Math.round(this.mousePos.x)},${Math.round(this.mousePos.y)}`, 10, 90);
-        this.ctx.fillText(`Сетка: ${gridPos[0]},${gridPos[1]}`, 10, 105);
-        this.ctx.fillText(`В поле: ${this.isValidGridPosition(gridPos[0], gridPos[1]) ? 'Да' : 'Нет'}`, 10, 120);
-    }
+//    drawUI() {
+//        // Рисуем бонусный индикатор
+//        if (this.manegeBonusActive) {
+//            const remainingTime = Math.max(0, this.manegeBonusEndTime - Date.now());
+//            const minutes = Math.floor(remainingTime / 60000);
+//            const seconds = Math.floor((remainingTime % 60000) / 1000);
+//
+//            this.ctx.fillStyle = 'rgba(246, 224, 94, 0.9)';
+//            this.ctx.fillRect(this.canvas.width - 200, 120, 180, 40);
+//            this.ctx.fillStyle = '#1a202c';
+//            this.ctx.font = '14px Arial';
+//            this.ctx.fillText(`${minutes}:${seconds.toString().padStart(2, '0')}`, this.canvas.width - 190, 160);
+//        }
+//
+//        // Отладочная информация
+//        this.ctx.fillStyle = 'white';
+//        this.ctx.font = '12px Arial';
+//        this.ctx.fillText(`Зданий на поле: ${this.buildings.length}`, 10, 30);
+//        this.ctx.fillText(`Доступно зданий: ${this.availableBuildings.length}`, 10, 45);
+//        this.ctx.fillText(`Занято клеток: ${this.grid.size}`, 10, 60);
+//        this.ctx.fillText(`Размер поля: ${this.gridWidth}x${this.gridHeight}`, 10, 75);
+//
+//        // Показываем координаты мыши для отладки
+//        const gridPos = this.screenToGrid(this.mousePos.x, this.mousePos.y);
+//        this.ctx.fillText(`Мышь: ${Math.round(this.mousePos.x)},${Math.round(this.mousePos.y)}`, 10, 90);
+//        this.ctx.fillText(`Сетка: ${gridPos[0]},${gridPos[1]}`, 10, 105);
+//        this.ctx.fillText(`В поле: ${this.isValidGridPosition(gridPos[0], gridPos[1]) ? 'Да' : 'Нет'}`, 10, 120);
+//    }
 
     gameLoop() {
         // Очищаем canvas
@@ -703,7 +737,7 @@ class Game {
         this.updatePoints();
         this.spawnNewBuildings();
         this.drawGrid();
-        this.drawUI();
+        //this.drawUI();
 
         requestAnimationFrame(() => this.gameLoop());
     }
