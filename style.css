@@ -39,63 +39,144 @@ body {
 }
 
 .ui-panel {
-    position: absolute;
     background: rgba(26, 32, 53, 0.95);
     border: 2px solid #4a5568;
     border-radius: 12px;
-    padding: 15px;
+    padding: 12px;
     backdrop-filter: blur(10px);
     pointer-events: auto;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 }
 
+/* Компактное расположение в левом верхнем углу */
+#topLeftPanels {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 280px;
+}
+
 #pointsPanel {
-    top: 20px;
-    left: 20px;
-    min-width: 200px;
+    min-width: 180px;
+    padding: 10px 12px;
 }
 
 .points-header {
-    font-size: 16px;
+    font-size: 14px;
     font-weight: bold;
     color: #63b3ed;
-    margin-bottom: 5px;
+    margin-bottom: 4px;
 }
 
 .points-value {
-    font-size: 20px;
+    font-size: 18px;
     font-weight: bold;
     color: #fafafa;
 }
 
+#selectedBuildingPanel {
+    min-width: 180px;
+    max-width: 200px;
+    padding: 10px;
+}
+
+.building-info-name {
+    font-size: 13px;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.building-info-stats {
+    font-size: 11px;
+    color: #cbd5e0;
+    line-height: 1.3;
+    margin-bottom: 8px;
+}
+
+.building-info-stats div {
+    margin-bottom: 2px;
+}
+
+.action-button {
+    width: 100%;
+    padding: 6px;
+    background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+    border: 1px solid #4a5568;
+    border-radius: 6px;
+    color: white;
+    cursor: pointer;
+    font-size: 11px;
+    transition: all 0.3s ease;
+}
+
+.action-button:hover {
+    background: linear-gradient(135deg, #63b3ed 0%, #4299e1 100%);
+    transform: translateY(-1px);
+}
+
+.action-button:active {
+    transform: translateY(0);
+}
+
+/* Бонусная панель в правом верхнем углу */
+#bonusPanel {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    min-width: 200px;
+    max-width: 250px;
+    background: linear-gradient(135deg, #f6e05e 0%, #d69e2e 100%);
+    color: #1a202c;
+    border-color: #d69e2e;
+    padding: 10px 12px;
+}
+
+#bonusText {
+    font-weight: bold;
+    font-size: 13px;
+    margin-bottom: 4px;
+}
+
+.bonus-timer {
+    font-size: 11px;
+    color: #744210;
+    font-weight: 600;
+}
+
+/* Панель зданий внизу */
 #buildingsPanel {
-    bottom: 20px;
-    left: 20px;
-    right: 20px;
-    max-height: 180px;
+    position: absolute;
+    bottom: 15px;
+    left: 15px;
+    right: 15px;
+    max-height: 150px;
+    padding: 10px;
 }
 
 .buildings-header {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: bold;
     color: #63b3ed;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
     text-align: center;
 }
 
 .buildings-list {
     display: flex;
-    gap: 10px;
+    gap: 8px;
     overflow-x: auto;
-    padding: 5px;
+    padding: 3px;
 }
 
 .building-card {
-    min-width: 140px;
+    min-width: 120px;
     background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
     border: 2px solid #4a5568;
-    border-radius: 10px;
-    padding: 12px;
+    border-radius: 8px;
+    padding: 8px;
     text-align: center;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -119,72 +200,37 @@ body {
 }
 
 .building-name {
-    font-size: 14px;
+    font-size: 12px;
     font-weight: bold;
-    margin-bottom: 6px;
+    margin-bottom: 4px;
 }
 
 .building-stats {
-    font-size: 12px;
+    font-size: 11px;
     color: #cbd5e0;
-    line-height: 1.3;
+    line-height: 1.2;
 }
 
 .building-count {
-    font-size: 11px;
+    font-size: 10px;
     color: #f6e05e;
-    margin-top: 4px;
+    margin-top: 3px;
     font-weight: bold;
-}
-
-#selectedBuildingInfo {
-    margin-bottom: 15px;
-}
-
-.action-button:hover {
-    background: linear-gradient(135deg, #63b3ed 0%, #4299e1 100%);
-    transform: translateY(-1px);
-}
-
-.action-button:active {
-    transform: translateY(0);
-}
-
-#hintPanel {
-    bottom: 210px;
-    left: 20px;
-    right: 20px;
-    text-align: center;
-    font-size: 14px;
-    color: #f6e05e;
-}
-
-.bonus-indicator {
-    top: 20px;
-    right: 20px;
-    background: linear-gradient(135deg, #f6e05e 0%, #d69e2e 100%);
-    color: #1a202c;
-    border-color: #d69e2e;
-}
-
-#bonusText {
-    font-weight: bold;
-    font-size: 14px;
 }
 
 /* Стили для скроллбара */
 .buildings-list::-webkit-scrollbar {
-    height: 6px;
+    height: 4px;
 }
 
 .buildings-list::-webkit-scrollbar-track {
     background: rgba(74, 85, 104, 0.3);
-    border-radius: 3px;
+    border-radius: 2px;
 }
 
 .buildings-list::-webkit-scrollbar-thumb {
     background: #63b3ed;
-    border-radius: 3px;
+    border-radius: 2px;
 }
 
 .buildings-list::-webkit-scrollbar-thumb:hover {
@@ -201,9 +247,6 @@ body {
 .pulse {
     animation: pulse 2s infinite;
 }
-
-
-
 
 #gameCanvas {
     display: block;
@@ -231,65 +274,116 @@ body {
     animation: buildingAppear 0.3s ease-out;
 }
 
-
-
-
-
-
-
-#selectedBuildingPanel {
-    top: 100px;
-    left: 20px;
-    min-width: 180px; /* Уменьшил с 220px */
-    max-width: 200px; /* Добавил ограничение по ширине */
-    padding: 10px; /* Уменьшил отступы */
-}
-
-.building-info-name {
-    font-size: 14px; /* Уменьшил шрифт */
-    font-weight: bold;
-    margin-bottom: 6px; /* Уменьшил отступ */
-}
-
-.building-info-stats {
-    font-size: 12px; /* Уменьшил шрифт */
-    color: #cbd5e0;
-    line-height: 1.3; /* Уменьшил межстрочный интервал */
-}
-
-.action-button {
-    width: 100%;
-    padding: 8px; /* Уменьшил отступы кнопки */
-    margin: 3px 0; /* Уменьшил отступы */
-    background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
-    border: 1px solid #4a5568;
-    border-radius: 6px;
-    color: white;
-    cursor: pointer;
-    font-size: 12px; /* Уменьшил шрифт кнопки */
-    transition: all 0.3s ease;
-}
-
-/* Для мобильных устройств - еще меньше */
+/* Для мобильных устройств */
 @media (max-width: 768px) {
-    #selectedBuildingPanel {
+    #topLeftPanels {
+        top: 10px;
         left: 10px;
-        right: 10px;
-        min-width: auto;
-        max-width: none;
+        max-width: 65%;
+    }
+
+    #pointsPanel {
+        min-width: 140px;
+        padding: 8px 10px;
+    }
+
+    .points-header {
+        font-size: 12px;
+    }
+
+    .points-value {
+        font-size: 16px;
+    }
+
+    #selectedBuildingPanel {
+        min-width: 140px;
+        max-width: 160px;
         padding: 8px;
     }
 
     .building-info-name {
-        font-size: 13px;
+        font-size: 12px;
     }
 
     .building-info-stats {
-        font-size: 11px;
+        font-size: 10px;
     }
 
     .action-button {
+        padding: 5px;
+        font-size: 10px;
+    }
+
+    #bonusPanel {
+        top: 10px;
+        right: 10px;
+        min-width: 150px;
+        max-width: 200px;
+        padding: 8px 10px;
+    }
+
+    #bonusText {
+        font-size: 12px;
+    }
+
+    .bonus-timer {
+        font-size: 10px;
+    }
+
+    #buildingsPanel {
+        bottom: 10px;
+        left: 10px;
+        right: 10px;
+        max-height: 130px;
+        padding: 8px;
+    }
+
+    .building-card {
+        min-width: 100px;
         padding: 6px;
+    }
+
+    .building-name {
         font-size: 11px;
+    }
+
+    .building-stats {
+        font-size: 10px;
+    }
+}
+
+/* Для очень маленьких экранов */
+@media (max-width: 480px) {
+    #topLeftPanels {
+        top: 5px;
+        left: 5px;
+        max-width: 60%;
+    }
+
+    #bonusPanel {
+        top: 5px;
+        right: 5px;
+        min-width: 120px;
+        max-width: 150px;
+    }
+
+    #buildingsPanel {
+        bottom: 5px;
+        left: 5px;
+        right: 5px;
+        max-height: 110px;
+    }
+
+    .building-card {
+        min-width: 90px;
+        padding: 5px;
+    }
+
+    .building-name {
+        font-size: 10px;
+    }
+
+    .building-stats {
+        font-size: 9px;
     }
 }

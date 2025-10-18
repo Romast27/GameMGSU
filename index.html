@@ -10,27 +10,28 @@
     <div id="gameContainer">
         <canvas id="gameCanvas"></canvas>
         <div id="uiContainer">
-            <div id="pointsPanel" class="ui-panel">
-                <div class="points-header">🏗️ Строитель мечты</div>
-                <div class="points-value">Очки: <span id="pointsValue">0</span></div>
+            <div id="topLeftPanels">
+                <div id="pointsPanel" class="ui-panel">
+                    <div class="points-header">🏗️ Строитель мечты</div>
+                    <div class="points-value">Очки: <span id="pointsValue">0</span></div>
+                </div>
+
+                <div id="selectedBuildingPanel" class="ui-panel" style="display: none;">
+                    <div id="selectedBuildingInfo"></div>
+                    <button id="cancelButton" class="action-button">❌ Отмена</button>
+                </div>
             </div>
 
-            <div id="selectedBuildingPanel" class="ui-panel" style="display: none;">
-                <div id="selectedBuildingInfo"></div>
-                <button id="rotateButton" class="action-button">🔄 Повернуть</button>
-                <button id="cancelButton" class="action-button">❌ Отмена</button>
+            <div id="bonusPanel" class="ui-panel bonus-indicator" style="display: none;">
+                <div id="bonusText"></div>
+                <div id="bonusTimer" class="bonus-timer"></div>
             </div>
-
 
             <div id="buildingsPanel" class="ui-panel">
                 <div class="buildings-header">Доступные здания</div>
                 <div id="buildingsList" class="buildings-list">
                     <!-- Здания будут добавляться динамически -->
                 </div>
-            </div>
-
-            <div id="bonusPanel" class="ui-panel bonus-indicator" style="display: none;">
-                <div id="bonusText"></div>
             </div>
         </div>
     </div>

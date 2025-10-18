@@ -40,6 +40,9 @@ class Game {
 
         this.mousePos = { x: 0, y: 0 };
 
+        this.playerId = 'player_' + Math.random().toString(36).substr(2, 9);
+		this.serverUrl = 'http://localhost:8000'; // URL вашего сервера
+
         this.initialize();
     }
 
@@ -258,8 +261,9 @@ class Game {
             offsetX = 0.5;
         }
         const approximateQ = (screenX) / (this.hexSize * Math.sqrt(3));
-
         const q = Math.round(approximateQ + offsetX) + 7;
+
+        console.log(approximateR, approximateQ, r, q);
 
         return [q, r];
     }
@@ -363,6 +367,8 @@ class Game {
         this.createBuildingCards();
         this.selectedBuilding = null;
 
+        this.saveBuildingToServer(building, q, r);
+
         console.log('Building placed:', building.type, 'at', q, r);
     }
 
@@ -459,6 +465,8 @@ class Game {
         const timeDiff = (currentTime - this.lastUpdateTime) / 1000;
 
         if (timeDiff > 0) {
+            let pointsBefore = this.totalPoints;
+
             for (const building of this.buildings) {
                 if (building.placed) {
                     const income = this.calculateBuildingIncome(building);
@@ -473,8 +481,28 @@ class Game {
 
             this.lastUpdateTime = currentTime;
             this.pointsValue.textContent = Math.floor(this.totalPoints);
+
+            if (currentTime - this.lastUpdateTime >= 60000 ||
+	            Math.abs(this.totalPoints - pointsBefore) > 10) {
+	            this.updatePointsOnServer();
+	        }
         }
-    }
+        const currentTime = Date.now();
+	    const timeDiff = (currentTime - this.lastUpdateTime) / 1000;
+
+	    if (timeDiff > 0) {
+	        let pointsBefore = this.totalPoints;
+
+	        for (const building of this.buildings) {
+	            if (building.placed) {
+	                const income = this.calculateBuildingIncome(building);
+	                this.totalPoints += income;
+	            }
+	        }
+
+	        // Обновляем на сервере каждую минуту или при значительном изменении
+
+	    }
 
     spawnNewBuildings() {
         const currentTime = Date.now();
@@ -503,7 +531,11 @@ class Game {
     }
 
     generateInitialBuildings() {
-        const initialTypes = ['DORMITORY', 'ROMASHKA'];
+        const buildingTypes = ['PARK', 'DORMITORY', 'ROMASHKA', 'KMK', 'CANDLE', 'MANEGE'];
+        const randomType1 = buildingTypes[Math.floor(Math.random() * buildingTypes.length)];
+        const randomType2 = buildingTypes[Math.floor(Math.random() * buildingTypes.length)];
+        const randomType3 = buildingTypes[Math.floor(Math.random() * buildingTypes.length)];
+        const initialTypes = [randomType1, randomType2, randomType3];
 
         for (const type of initialTypes) {
             const building = new Building(type);
@@ -601,14 +633,36 @@ class Game {
     }
 
     showBonus(text) {
-        this.bonusText.textContent = text;
-        this.bonusPanel.style.display = 'block';
-        this.bonusPanel.classList.add('pulse');
+	    this.bonusText.textContent = text;
+	    this.bonusPanel.style.display = 'block';
+	    this.bonusPanel.classList.add('pulse');
 
-        setTimeout(() => {
-            this.bonusPanel.classList.remove('pulse');
-        }, 2000);
-    }
+	    // Обновляем таймер каждую секунду
+	    const updateTimer = () => {
+	        if (this.manegeBonusActive) {
+	            const remainingTime = Math.max(0, this.manegeBonusEndTime - Date.now());
+	            const minutes = Math.floor(remainingTime / 60000);
+	            const seconds = Math.floor((remainingTime % 60000) / 1000);
+
+	            const timerElement = document.getElementById('bonusTimer');
+	            if (timerElement) {
+	                timerElement.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+	            }
+
+	            if (remainingTime > 0) {
+	                setTimeout(updateTimer, 1000);
+	            } else {
+	                this.bonusPanel.style.display = 'none';
+	            }
+	        }
+	    };
+
+	    updateTimer();
+
+	    setTimeout(() => {
+	        this.bonusPanel.classList.remove('pulse');
+	    }, 2000);
+	}
 
     getContrastColor(hexcolor) {
         const r = parseInt(hexcolor.substr(1, 2), 16);
@@ -700,34 +754,65 @@ class Game {
         }
     }
 
-//    drawUI() {
-//        // Рисуем бонусный индикатор
-//        if (this.manegeBonusActive) {
-//            const remainingTime = Math.max(0, this.manegeBonusEndTime - Date.now());
-//            const minutes = Math.floor(remainingTime / 60000);
-//            const seconds = Math.floor((remainingTime % 60000) / 1000);
-//
-//            this.ctx.fillStyle = 'rgba(246, 224, 94, 0.9)';
-//            this.ctx.fillRect(this.canvas.width - 200, 120, 180, 40);
-//            this.ctx.fillStyle = '#1a202c';
-//            this.ctx.font = '14px Arial';
-//            this.ctx.fillText(`${minutes}:${seconds.toString().padStart(2, '0')}`, this.canvas.width - 190, 160);
-//        }
-//
-//        // Отладочная информация
-//        this.ctx.fillStyle = 'white';
-//        this.ctx.font = '12px Arial';
-//        this.ctx.fillText(`Зданий на поле: ${this.buildings.length}`, 10, 30);
-//        this.ctx.fillText(`Доступно зданий: ${this.availableBuildings.length}`, 10, 45);
-//        this.ctx.fillText(`Занято клеток: ${this.grid.size}`, 10, 60);
-//        this.ctx.fillText(`Размер поля: ${this.gridWidth}x${this.gridHeight}`, 10, 75);
-//
-//        // Показываем координаты мыши для отладки
-//        const gridPos = this.screenToGrid(this.mousePos.x, this.mousePos.y);
-//        this.ctx.fillText(`Мышь: ${Math.round(this.mousePos.x)},${Math.round(this.mousePos.y)}`, 10, 90);
-//        this.ctx.fillText(`Сетка: ${gridPos[0]},${gridPos[1]}`, 10, 105);
-//        this.ctx.fillText(`В поле: ${this.isValidGridPosition(gridPos[0], gridPos[1]) ? 'Да' : 'Нет'}`, 10, 120);
-//    }
+    async saveBuildingToServer(building, q, r) {
+	    try {
+	        const response = await fetch(`${this.serverUrl}/buildings/`, {
+	            method: 'POST',
+	            headers: {
+	                'Content-Type': 'application/json',
+	            },
+	            body: JSON.stringify({
+	                player_id: this.playerId,
+	                building_type: building.type,
+	                position_q: q,
+	                position_r: r,
+	                base_points: building.basePoints
+	            })
+	        });
+
+	        if (response.ok) {
+	            console.log('Building saved to server');
+	        } else {
+	            console.error('Failed to save building to server');
+	        }
+	    } catch (error) {
+	        console.error('Error saving building to server:', error);
+	    }
+	}
+
+	async updatePointsOnServer() {
+	    try {
+	        const response = await fetch(`${this.serverUrl}/players/${this.playerId}/points`, {
+	            method: 'POST',
+	            headers: {
+	                'Content-Type': 'application/json',
+	            },
+	            body: JSON.stringify({
+	                total_points: this.totalPoints
+	            })
+	        });
+
+	        if (response.ok) {
+	            console.log('Points updated on server');
+	        }
+	    } catch (error) {
+	        console.error('Error updating points on server:', error);
+	    }
+	}
+
+	async getPlayerStats() {
+	    try {
+	        const response = await fetch(`${this.serverUrl}/players/${this.playerId}/stats?hours=24`);
+	        if (response.ok) {
+	            const stats = await response.json();
+	            return stats;
+	        }
+	    } catch (error) {
+	        console.error('Error getting player stats:', error);
+	    }
+	    return null;
+	}
+
 
     gameLoop() {
         // Очищаем canvas
@@ -737,7 +822,6 @@ class Game {
         this.updatePoints();
         this.spawnNewBuildings();
         this.drawGrid();
-        //this.drawUI();
 
         requestAnimationFrame(() => this.gameLoop());
     }
